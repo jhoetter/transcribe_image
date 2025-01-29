@@ -1,0 +1,33 @@
+nodes:
+  analyze_data:
+    position:
+      x: 100.0
+      y: 100.0
+  entry_image:
+    position:
+      x: 400.0
+      y: 700.0
+  transcribe_image:
+    position:
+      x: 700.0
+      y: 700.0
+  summarize_text:
+    position:
+      x: 1000.0
+      y: 1000.0
+  evaluate_transcription:
+    position:
+      x: 1000.0
+      y: 700.0
+  generate_image:
+    position:
+      x: 1000.0
+      y: 700.0
+  evaluate_image:
+    position:
+      x: 1300.0
+      y: 700.0
+  empty_upload:
+    position:
+      x: 400.0
+      y: 1000.0
