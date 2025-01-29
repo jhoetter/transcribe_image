@@ -1,0 +1,21 @@
+pipeline:
+  analyze_data:
+    type: analyze_data
+  entry_image:
+    type: entry_image
+  empty_upload:
+    type: empty_upload
+  transcribe_image:
+    type: transcribe_image
+  summarize_text:
+    type: summarize_text
+  evaluate_transcription:
+    type: evaluate_transcription
+  generate_image:
+    type: generate_image
+  evaluate_image:
+    type: evaluate_image
+description: "This pipeline handles ETL tasks"
+author: "Johannes Hötter"
+version: "1.0"
+name: "etl_pipeline"
