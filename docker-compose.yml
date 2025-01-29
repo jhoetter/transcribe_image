@@ -1,0 +1,143 @@
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app:delegated
+      - /app/node_modules
+      - ~/repos/adalace-engine/adalace-react:/app/node_modules/@adalace/react:delegated
+    environment:
+      - WATCHPACK_POLLING=true
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_HOST=minio
+      - MINIO_PORT=9000
+      - IN_CONTAINER=true
+      - MINIO_CONN_POOL_SIZE=30
+      - REDIS_CONN_POOL_SIZE=30
+    volumes:
+      - .:/app:delegated
+      - ~/repos/adalace-engine:/app/adalace-engine:delegated
+    working_dir: /app/backend
+    networks:
+      app-network:
+        aliases:
+          - backend.local
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_HOST=minio
+      - MINIO_PORT=9000
+      - IN_CONTAINER=true
+      - MINIO_CONN_POOL_SIZE=30
+      - REDIS_CONN_POOL_SIZE=30
+    volumes:
+      - .:/app:delegated
+      - ~/repos/adalace-engine:/app/adalace-engine:delegated
+    working_dir: /app/backend
+    command: python app.py worker
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "10"
+    networks:
+      app-network:
+        aliases:
+          - worker.local
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 512M
+
+  redis:
+    image: redis:7.4
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: redis-server --maxclients 10000 --tcp-keepalive 60
+    networks:
+      app-network:
+        aliases:
+          - redis.local
+    sysctls:
+      net.core.somaxconn: 1024
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 256M
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_BROWSER_REDIRECT_URL=http://localhost:9001
+      - MINIO_REGION=us-east-1
+      - MINIO_API_SELECT_PARQUET=true
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001" --address ":9000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 2s
+      timeout: 2s
+      retries: 3
+    networks:
+      app-network:
+        aliases:
+          - minio.local
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 512M
+
+volumes:
+  minio-data:
+  backend-data:
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
