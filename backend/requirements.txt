@@ -1,0 +1,12 @@
+pydantic
+python-dotenv
+openai
+pillow
+pyyaml
+markitdown
+langfuse
+sqlalchemy
+redis
+python-multipart
+tenacity
+minio
